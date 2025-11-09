@@ -1,4 +1,3 @@
-
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 import plotly.express as px
@@ -50,7 +49,7 @@ st.subheader("📂 Carga de Datos del Motor")
 try:
     # 🔗 Leer directamente desde GitHub RAW
     url = "https://raw.githubusercontent.com/dennis0394-pixel/panel_control_industrial/main/datos_motor.csv"
-    df = pd.read_csv(url)
+    df = pd.read_csv(url, encoding='latin-1')
     st.success("✅ Datos cargados correctamente desde GitHub (datos_motor.csv)")
 except Exception as e:
     st.error("⚠️ No se encontró o no se pudo leer 'datos_motor.csv'. Se usarán datos de respaldo.")
