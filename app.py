@@ -64,85 +64,44 @@ except Exception as e:
 
 # ==============================================================
 # 📊 MODO 1: MONITOREO EN VIVO
+# ============================================================== #
 
-if modo == "📊 Monitoreo en Vivo":
+if modo == "Monitoreo en Vivo":
     st.title("🧠 Monitoreo en Tiempo Real del Motor")
 
-# 🧹 Filtrar solo columnas numéricas antes de entrenar el modelo
-df_numerico = df.select_dtypes(include=["float64", "int64"]).dropna()
+    # Asegurar que solo se usen columnas numéricas
+    df_numerico = df.select_dtypes(include=["float64", "int64"]).dropna()
+    if df_numerico.empty or df_numerico.shape[1] == 0:
+        st.error("⚠️ No se encontraron columnas numéricas válidas en el CSV. Verifica tu archivo 'datos_motor.csv'.")
+        st.stop()
 
-# ⚠️ Verificar si hay columnas numéricas suficientes
-if df_numerico.empty or df_numerico.shape[1] == 0:
-    st.error("⚠️ No se encontraron columnas numéricas válidas en el CSV. Verifica tu archivo de datos_motor.csv.")
-    st.stop()
+    # Mostrar columnas utilizadas
+    st.info(f"📈 Columnas utilizadas para el análisis: {', '.join(df_numerico.columns)}")
 
-# Mostrar las columnas usadas
-st.info(f"📈 Columnas utilizadas para el análisis: {', '.join(df_numerico.columns)}")
-
-# Entrenar el modelo solo con datos válidos
-try:
-    model = IsolationForest(contamination=0.5, random_state=42)
+    # Modelo de detección de anomalías
+    from sklearn.ensemble import IsolationForest
+    model = IsolationForest(contamination=0.3, random_state=42)
     df["riesgo_falla"] = model.fit_predict(df_numerico)
-    df["riesgo_falla"] = df["riesgo_falla"].map({1: 'Normal', -1: 'Riesgo'})
-except Exception as e:
-    st.error(f"❌ Error al entrenar el modelo: {e}")
-    st.stop()
+    df["riesgo_falla"] = df["riesgo_falla"].map({1: "Normal", -1: "Riesgo"})
 
-
-    def diagnostico_falla(row):
-        if row["riesgo_falla"] == "Normal":
-            return "Sin anomalías detectadas"
-        if row["Corriente_motor (A)"] > 16:
-            return "Posible sobrecarga eléctrica"
-        elif row["Presión_hidráulica (bar)"] < 80:
-            return "Presión baja — posible fuga"
-        elif row["Temperatura_aceite (°C)"] > 63:
-            return "Temperatura alta — riesgo de sobrecalentamiento"
-        elif row["Torque (Nm)"] > 150:
-            return "Torque elevado — posible fricción"
-        else:
-            return "Anomalía no clasificada"
-
-    df["causa_probable"] = df.apply(diagnostico_falla, axis=1)
+    # Contar resultados
     conteo = df["riesgo_falla"].value_counts()
-
     col1, col2, col3 = st.columns(3)
     col1.metric("⚠️ Riesgos Detectados", conteo.get("Riesgo", 0))
     col2.metric("✅ Normales", conteo.get("Normal", 0))
     col3.metric("📊 Registros Totales", len(df))
 
+    # Mostrar tabla de datos
     st.markdown("---")
+    st.dataframe(df)
 
-    # 📍 Registrar alarmas si hay riesgo
-    if "Riesgo" in df["riesgo_falla"].values:
-        riesgos = df[df["riesgo_falla"] == "Riesgo"]
-        for _, fila in riesgos.iterrows():
-            nueva_alarma = pd.DataFrame([{
-                "Fecha_Hora": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Variable": "Temperatura_aceite (°C)" if fila["Temperatura_aceite (°C)"] > 63 else "General",
-                "Nivel": "Alta",
-                "Descripción": fila["causa_probable"],
-                "Estado": "Pendiente"
-            }])
-
-            if os.path.exists("alarmas_log.csv"):
-                log = pd.read_csv("alarmas_log.csv")
-                log = pd.concat([log, nueva_alarma], ignore_index=True)
-            else:
-                log = nueva_alarma
-
-            log.to_csv("alarmas_log.csv", index=False)
-
-    # 🔹 Gráficos
+    # Gráfico resumen
+    import plotly.express as px
     fig_barras = px.bar(conteo, x=conteo.index, y=conteo.values,
                         color=conteo.index,
                         color_discrete_map={"Normal": "#10B981", "Riesgo": "#EF4444"},
                         title="Distribución de Riesgos de Falla")
     st.plotly_chart(fig_barras, use_container_width=True)
-
-    st.markdown("---")
-    st.subheader("📋 Datos en Tiempo Real")
-    st.dataframe(df)
 
 # ==============================================================
 # 📈 MODO 2: HISTÓRICO DE VARIABLES
@@ -150,15 +109,24 @@ except Exception as e:
 elif modo == "Histórico":
     st.title("📈 Histórico de Variables")
 
+    import numpy as np
+    import plotly.express as px
+
+    # Generar datos simulados (si no hay históricos)
     tiempo = np.arange(0, 100)
     torque = 150 + 5 * np.sin(tiempo / 5) + np.random.normal(0, 1, 100)
     temperatura = 60 + 8 * np.sin(tiempo / 8) + np.random.normal(0, 1, 100)
-    hist = pd.DataFrame({"Tiempo (min)": tiempo, "Torque (Nm)": torque, "Temperatura_aceite (°C)": temperatura})
+    hist = pd.DataFrame({
+        "Tiempo (min)": tiempo,
+        "Torque (Nm)": torque,
+        "Temperatura_aceite (°C)": temperatura
+    })
 
-    fig_line = px.line(hist, x="Tiempo (min)", y=["Torque (Nm)", "Temperatura_aceite (°C)"],
-                       title="Evolución del Torque y Temperatura",
-                       labels={"value": "Medición", "variable": "Variable"},
-                       color_discrete_map={"Torque (Nm)": "#2563EB", "Temperatura_aceite (°C)": "#F59E0B"})
+    # Gráfico de evolución
+    fig_line = px.line(hist, x="Tiempo (min)",
+                       y=["Torque (Nm)", "Temperatura_aceite (°C)"],
+                       title="Evolución del Torque y Temperatura del Motor",
+                       labels={"value": "Medición", "variable": "Variable"})
     st.plotly_chart(fig_line, use_container_width=True)
 
 # ==============================================================
@@ -167,7 +135,9 @@ elif modo == "Histórico":
 else:
     st.title("🚨 Gestión de Alarmas y Mantenimiento Histórico")
 
-    # Si existe el archivo CSV, cargarlo
+    import os
+
+    # Si existe el archivo de alarmas, cargarlo
     if os.path.exists("alarmas_log.csv"):
         log = pd.read_csv("alarmas_log.csv")
         st.success(f"📁 {len(log)} alarmas registradas históricamente.")
@@ -175,15 +145,17 @@ else:
         log = pd.DataFrame(columns=["Fecha_Hora", "Variable", "Nivel", "Descripción", "Estado"])
         st.warning("⚠️ No se han registrado alarmas aún.")
 
-    # Mostrar tabla
+    # Mostrar tabla de alarmas
     st.dataframe(log)
 
-    # Gráfico resumen
+    # Gráfico resumen de alarmas
     if not log.empty:
-        fig_pie = px.pie(log, names="Nivel", title="Distribución de Niveles de Alarma",
+        import plotly.express as px
+        fig_pie = px.pie(log, names="Nivel",
+                         title="Distribución de Niveles de Alarma",
                          color_discrete_map={"Alta": "#DC2626", "Media": "#F59E0B", "Baja": "#10B981"})
         st.plotly_chart(fig_pie, use_container_width=True)
 
     st.markdown("---")
     st.info("💡 Consejo: Usa este historial para planificar mantenimientos preventivos y evaluar patrones de falla.")
-''')
+
