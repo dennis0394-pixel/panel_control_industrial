@@ -1,5 +1,16 @@
 
 import pandas as pd
+from sklearn.ensemble import IsolationForest
+import plotly.express as px
+import streamlit as st
+
+# ============================================================== #
+# 🧠 PANEL INDUSTRIAL 4.0 — MONITOREO + HISTÓRICO + LOG DE ALARMAS
+# ============================================================== #
+
+with open("app.py", "w") as f:
+    f.write('''
+import pandas as pd
 import numpy as np
 import datetime
 from sklearn.ensemble import IsolationForest
@@ -33,19 +44,23 @@ modo = st.sidebar.radio("Selecciona vista:",
 st.sidebar.info("Sistema Industrial 4.0 — con almacenamiento CSV persistente")
 
 
-# ===================== DATOS BASE =====================
-# 📂 Cargar datos desde archivo CSV externo
+# ==================== DATOS BASE ====================
+st.subheader("📂 Carga de Datos del Motor")
+
 try:
-    df = pd.read_csv("/content/datos_motor.csv")
-    st.success("✅ Datos cargados correctamente desde datos_motor.csv")
-except FileNotFoundError:
-    st.error("⚠️ No se encontró el archivo 'datos_motor.csv'. Verifica que esté en la carpeta del proyecto.")
-    df = pd.DataFrame(columns=[
-        "Corriente_motor (A)",
-        "Torque (Nm)",
-        "Presión_hidráulica (bar)",
-        "Temperatura_aceite (°C)"
-    ])
+    # 🔗 Leer directamente desde GitHub RAW
+    url = "https://raw.githubusercontent.com/dennis0394-pixel/panel_control_industrial/main/datos_motor.csv"
+    df = pd.read_csv(url)
+    st.success("✅ Datos cargados correctamente desde GitHub (datos_motor.csv)")
+except Exception as e:
+    st.error("⚠️ No se encontró o no se pudo leer 'datos_motor.csv'. Se usarán datos de respaldo.")
+    st.write(e)
+    df = pd.DataFrame({
+        "Corriente_motor (A)": [18.5, 17.9, 16.8, 19.2],
+        "Torque (Nm)": [160.4, 158.7, 157.3, 162.8],
+        "Presión_hidráulica (bar)": [90.2, 88.9, 87.3, 91.0],
+        "Temperatura_aceite (°C)": [68.4, 70.1, 67.5, 72.3]
+    })
 
 
 # ==============================================================
@@ -155,3 +170,4 @@ else:
 
     st.markdown("---")
     st.info("💡 Consejo: Usa este historial para planificar mantenimientos preventivos y evaluar patrones de falla.")
+''')
