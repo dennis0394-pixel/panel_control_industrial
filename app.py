@@ -64,17 +64,18 @@ except Exception as e:
 
 # ==============================================================
 # 📊 MODO 1: MONITOREO EN VIVO
-# ==============================================================
+
 if modo == "📊 Monitoreo en Vivo":
     st.title("🧠 Monitoreo en Tiempo Real del Motor")
 
-# 🧹 Filtrar solo columnas numéricas antes de entrenar el modelo
-df_numerico = df.select_dtypes(include=["float64", "int64"]).dropna()
+    # 🧹 Filtrar solo columnas numéricas antes de entrenar el modelo
+    df_numerico = df.select_dtypes(include=["float64", "int64"]).dropna()
 
-# Entrenar el modelo solo con datos válidos
-model = IsolationForest(contamination=0.5, random_state=42)
-df["riesgo_falla"] = model.fit_predict(df_numerico)
+    # Entrenar el modelo solo con datos válidos
+    model = IsolationForest(contamination=0.5, random_state=42)
+    df["riesgo_falla"] = model.fit_predict(df_numerico)
     df["riesgo_falla"] = df["riesgo_falla"].map({1: "Normal", -1: "Riesgo"})
+
 
     def diagnostico_falla(row):
         if row["riesgo_falla"] == "Normal":
@@ -174,3 +175,4 @@ else:
     st.markdown("---")
     st.info("💡 Consejo: Usa este historial para planificar mantenimientos preventivos y evaluar patrones de falla.")
 ''')
+
