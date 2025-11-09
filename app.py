@@ -68,13 +68,25 @@ except Exception as e:
 if modo == "📊 Monitoreo en Vivo":
     st.title("🧠 Monitoreo en Tiempo Real del Motor")
 
-    # 🧹 Filtrar solo columnas numéricas antes de entrenar el modelo
-    df_numerico = df.select_dtypes(include=["float64", "int64"]).dropna()
+# 🧹 Filtrar solo columnas numéricas antes de entrenar el modelo
+df_numerico = df.select_dtypes(include=["float64", "int64"]).dropna()
 
-    # Entrenar el modelo solo con datos válidos
+# ⚠️ Verificar si hay columnas numéricas suficientes
+if df_numerico.empty or df_numerico.shape[1] == 0:
+    st.error("⚠️ No se encontraron columnas numéricas válidas en el CSV. Verifica tu archivo de datos_motor.csv.")
+    st.stop()
+
+# Mostrar las columnas usadas
+st.info(f"📈 Columnas utilizadas para el análisis: {', '.join(df_numerico.columns)}")
+
+# Entrenar el modelo solo con datos válidos
+try:
     model = IsolationForest(contamination=0.5, random_state=42)
     df["riesgo_falla"] = model.fit_predict(df_numerico)
-    df["riesgo_falla"] = df["riesgo_falla"].map({1: "Normal", -1: "Riesgo"})
+    df["riesgo_falla"] = df["riesgo_falla"].map({1: 'Normal', -1: 'Riesgo'})
+except Exception as e:
+    st.error(f"❌ Error al entrenar el modelo: {e}")
+    st.stop()
 
 
     def diagnostico_falla(row):
@@ -175,4 +187,3 @@ else:
     st.markdown("---")
     st.info("💡 Consejo: Usa este historial para planificar mantenimientos preventivos y evaluar patrones de falla.")
 ''')
-
