@@ -39,7 +39,7 @@ st.markdown("""
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2721/2721283.png", width=80)
 st.sidebar.title("⚙️ Control de Motor - V4.0")
 modo = st.sidebar.radio("Selecciona vista:",
-                        ["📊 Monitoreo en Vivo", "📈 Histórico", "🚨 Alarmas y Mantenimiento"])
+                        ["📊 Monitoreo en Vivo", "Histórico", "🚨 Alarmas y Mantenimiento"])
 st.sidebar.info("Sistema Industrial 4.0 — con almacenamiento CSV persistente")
 
 
@@ -147,7 +147,7 @@ except Exception as e:
 # ==============================================================
 # 📈 MODO 2: HISTÓRICO DE VARIABLES
 # ==============================================================
-elif modo == "📈 Histórico":
+elif modo == "Histórico":
     st.title("📈 Histórico de Variables")
 
     tiempo = np.arange(0, 100)
