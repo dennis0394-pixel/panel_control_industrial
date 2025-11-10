@@ -17,20 +17,18 @@ modo = st.sidebar.radio("Selecciona vista:",
 st.sidebar.info("Sistema Industrial 4.0 — Cloud Edition")
 
 # =========================================================
-# 📂 CARGA DE DATOS
-# =========================================================
-st.subheader("📂 Carga de Datos del Motor")
-
+# ===================== DATOS BASE =====================
 try:
     df = pd.read_csv("datos_motor.csv", encoding="utf-8", sep=",")
-    st.success("✅ Datos cargados correctamente desde 'datos_motor.csv'")
+    st.sidebar.success("✅ Datos cargados correctamente desde 'datos_motor.csv'")
 except Exception as e:
-    st.error(f"⚠️ No se pudo leer 'datos_motor.csv'. Se usarán datos simulados. ({e})")
+    st.sidebar.warning("⚠️ No se encontró 'datos_motor.csv', creando datos de ejemplo...")
+    st.write(e)
     df = pd.DataFrame({
-        "Corriente_motor (A)": [18.5, 17.9, 16.8, 19.2, 18.7, 17.4, 15.9, 10.8, 11.2, 10.4],
-        "Torque (Nm)": [160.4, 158.7, 157.3, 162.8, 159.9, 155.6, 152.0, 138.5, 140.2, 139.8],
-        "Presión_hidráulica (bar)": [90.2, 88.9, 87.3, 91.0, 89.5, 88.1, 85.7, 82.1, 80.4, 80.6],
-        "Temperatura_aceite (°C)": [68.4, 70.1, 67.5, 72.3, 69.8, 71.2, 65.9, 42.0, 41.8, 43.5]
+        "Corriente_motor (A)": [18.5, 17.9, 16.8, 19.2],
+        "Torque (Nm)": [160.4, 158.7, 157.3, 162.8],
+        "Presión_hidráulica (bar)": [90.2, 88.9, 87.3, 91.0],
+        "Temperatura_aceite (°C)": [68.4, 70.1, 67.5, 72.3]
     })
 
 # Limpieza: reemplazar comas por puntos y convertir a número
