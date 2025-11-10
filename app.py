@@ -1,3 +1,4 @@
+
 import pandas as pd
 import numpy as np
 import datetime
@@ -55,10 +56,19 @@ except Exception as e:
 if modo == "📊 Monitoreo en Vivo":
     st.title("🧠 Monitoreo en Tiempo Real del Motor")
 
-    df_numerico = df.select_dtypes(include=["float64", "int64"]).dropna()
-    if df_numerico.empty or df_numerico.shape[1] == 0:
-        st.error("⚠️ No hay columnas numéricas válidas en el archivo 'datos_motor.csv'. Verifica los datos.")
-        st.stop()
+    # --- REFRESCO AUTOMÁTICO ---
+    refresh_rate = st.sidebar.slider("⏱️ Actualizar cada (segundos)", 5, 60, 15)
+    st_autorefresh = st.empty()
+
+    # Mantiene la app recargándose automáticamente
+    st_autorefresh = st.experimental_rerun if time.time() % refresh_rate == 0 else None
+
+    # --- CARGAR DATOS ACTUALIZADOS ---
+    try:
+        df = pd.read_csv("datos_motor.csv", encoding="utf-8", sep=",")
+    except Exception as e:
+        st.warning("⚠️ No se pudo leer 'datos_motor.csv'. Se usarán datos previos.")
+
 
     model = IsolationForest(contamination=0.3, random_state=42)
     df["riesgo_falla"] = model.fit_predict(df_numerico)
