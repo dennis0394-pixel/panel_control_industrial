@@ -171,4 +171,5 @@ else:
 # ============================================================== #
 # 🚀 Ejecutar Streamlit + Cloudflare Tunnel
 # ============================================================== #
-!streamlit run app.py & npx cloudflared tunnel --url http://localhost:8501
+# ⚙️ Ejecución local (solo para pruebas en tu PC, no en Streamlit Cloud)
+# !streamlit run app.py & npx cloudflared tunnel --url http://localhost:8501
