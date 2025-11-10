@@ -36,6 +36,9 @@ st.subheader("📂 Carga de Datos del Motor")
 
 try:
     df = pd.read_csv("datos_motor.csv", encoding="utf-8", sep=",")
+except UnicodeDecodeError:
+    df = pd.read_csv("datos_motor.csv", encoding="latin-1", sep=",")
+
     st.sidebar.success("✅ Datos cargados correctamente desde 'datos_motor.csv'")
 except Exception as e:
     st.sidebar.warning("⚠️ No se encontró 'datos_motor.csv' o no se pudo leer correctamente. Se generarán datos de ejemplo.")
