@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 import datetime
@@ -33,9 +32,18 @@ modo = st.sidebar.radio("Selecciona vista:",
 st.sidebar.info("Sistema Industrial 4.0 — Cloud Edition (Streamlit Cloud)")
 
 # ===================== DATOS BASE =====================
+
 try:
-    df = pd.read_csv("datos_motor.csv")
-    st.sidebar.success("✅ Datos cargados desde 'datos_motor.csv'")
+    # Intenta leer con varios formatos de codificación y separadores
+    try:
+        df = pd.read_csv("datos_motor.csv", encoding='utf-8', sep=',')
+    except UnicodeDecodeError:
+        try:
+            df = pd.read_csv("datos_motor.csv", encoding='latin-1', sep=',')
+        except Exception:
+            df = pd.read_csv("datos_motor.csv", encoding='latin-1', sep=';')
+
+    st.sidebar.success("✅ Datos cargados correctamente desde 'datos_motor.csv'")
 except FileNotFoundError:
     st.sidebar.warning("⚠️ No se encontró 'datos_motor.csv', creando datos de ejemplo...")
     df = pd.DataFrame({
