@@ -1,161 +1,95 @@
 import pandas as pd
 from sklearn.ensemble import IsolationForest
-import plotly.express as px
-import streamlit as st
-
-# ============================================================== #
-# 🧠 PANEL INDUSTRIAL 4.0 — MONITOREO + HISTÓRICO + LOG DE ALARMAS
-# ============================================================== #
-
-with open("app.py", "w") as f:
-    f.write('''
-import pandas as pd
-import numpy as np
-import datetime
-from sklearn.ensemble import IsolationForest
-import plotly.express as px
-import streamlit as st
-import os
-
-# ===================== CONFIGURACIÓN =====================
-st.set_page_config(page_title="Panel de Monitoreo Industrial 4.0",
-                   layout="wide",
-                   page_icon="⚙️")
-
-# ===================== ESTILOS =====================
-st.markdown("""
-<style>
-    .main { background-color: #F4F7FA; }
-    .sidebar .sidebar-content {
-        background: linear-gradient(180deg, #1F2937, #374151);
-        color: white;
-    }
-    h1, h2, h3 { color: #1F2937; }
-    .stMetricLabel { color: #6B7280 !important; }
-</style>
-""", unsafe_allow_html=True)
-
-# ===================== SIDEBAR =====================
-st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2721/2721283.png", width=80)
-st.sidebar.title("⚙️ Control de Motor - V4.0")
-modo = st.sidebar.radio("Selecciona vista:",
-                        ["📊 Monitoreo en Vivo", "Histórico", "🚨 Alarmas y Mantenimiento"])
-st.sidebar.info("Sistema Industrial 4.0 — con almacenamiento CSV persistente")
-
-
-# ==================== DATOS BASE ====================
-st.subheader("📂 Carga de Datos del Motor")
-
-try:
-    # 🔗 Leer directamente desde GitHub RAW
-    url = "https://raw.githubusercontent.com/dennis0394-pixel/panel_control_industrial/main/datos_motor.csv"
-    df = pd.read_csv(url, encoding='latin-1')
-    st.success("✅ Datos cargados correctamente desde GitHub (datos_motor.csv)")
-except Exception as e:
-    st.error("⚠️ No se encontró o no se pudo leer 'datos_motor.csv'. Se usarán datos de respaldo.")
-    st.write(e)
-    df = pd.DataFrame({
-        "Corriente_motor (A)": [18.5, 17.9, 16.8, 19.2],
-        "Torque (Nm)": [160.4, 158.7, 157.3, 162.8],
-        "Presión_hidráulica (bar)": [90.2, 88.9, 87.3, 91.0],
-        "Temperatura_aceite (°C)": [68.4, 70.1, 67.5, 72.3]
-    })
-
+import matplotlib.pyplot as plt
 
 # ==============================================================
-# 📊 MODO 1: MONITOREO EN VIVO
-# ============================================================== #
+# ⚙️ SIMULACIÓN DE MONITOREO DE MOTOR ELÉCTRICO — FASE 2
+# ==============================================================
 
-if modo == "Monitoreo en Vivo":
-    st.title("🧠 Monitoreo en Tiempo Real del Motor")
+# Datos simulados del motor
+data = {
+  "Corriente_motor (A)": [18.5, 17.9, 16.8, 19.2, 18.7, 17.4, 15.9, 10.8, 11.2, 10.4],
+    "Torque (Nm)": [160.4, 158.7, 157.3, 162.8, 159.9, 155.6, 152.0, 138.5, 140.2, 139.8],
+    "Presión_hidráulica (bar)": [90.2, 88.9, 87.3, 91.0, 89.5, 88.1, 85.7, 82.1, 80.4, 80.6],
+    "Temperatura_aceite (°C)": [68.4, 70.1, 67.5, 72.3, 69.8, 71.2, 65.9, 42.0, 41.8, 43.5]
+}
 
-    # Asegurar que solo se usen columnas numéricas
-    df_numerico = df.select_dtypes(include=["float64", "int64"]).dropna()
-    if df_numerico.empty or df_numerico.shape[1] == 0:
-        st.error("⚠️ No se encontraron columnas numéricas válidas en el CSV. Verifica tu archivo 'datos_motor.csv'.")
-        st.stop()
-
-    # Mostrar columnas utilizadas
-    st.info(f"📈 Columnas utilizadas para el análisis: {', '.join(df_numerico.columns)}")
-
-    # Modelo de detección de anomalías
-    from sklearn.ensemble import IsolationForest
-    model = IsolationForest(contamination=0.3, random_state=42)
-    df["riesgo_falla"] = model.fit_predict(df_numerico)
-    df["riesgo_falla"] = df["riesgo_falla"].map({1: "Normal", -1: "Riesgo"})
-
-    # Contar resultados
-    conteo = df["riesgo_falla"].value_counts()
-    col1, col2, col3 = st.columns(3)
-    col1.metric("⚠️ Riesgos Detectados", conteo.get("Riesgo", 0))
-    col2.metric("✅ Normales", conteo.get("Normal", 0))
-    col3.metric("📊 Registros Totales", len(df))
-
-    # Mostrar tabla de datos
-    st.markdown("---")
-    st.dataframe(df)
-
-    # Gráfico resumen
-    import plotly.express as px
-    fig_barras = px.bar(conteo, x=conteo.index, y=conteo.values,
-                        color=conteo.index,
-                        color_discrete_map={"Normal": "#10B981", "Riesgo": "#EF4444"},
-                        title="Distribución de Riesgos de Falla")
-    st.plotly_chart(fig_barras, use_container_width=True)
+# Crear el DataFrame y guardar CSV
+df = pd.DataFrame(data)
+df.to_csv("datos_motor.csv", index=False)
+print("✅ Archivo CSV 'datos_motor.csv' creado correctamente.\n")
 
 # ==============================================================
-# 📈 MODO 2: HISTÓRICO DE VARIABLES
+# 1️⃣ CARGA Y PREPARACIÓN DE DATOS
 # ==============================================================
-elif modo == "Histórico":
-    st.title("📈 Histórico de Variables")
 
-    import numpy as np
-    import plotly.express as px
+df = pd.read_csv("datos_motor.csv")
 
-    # Generar datos simulados (si no hay históricos)
-    tiempo = np.arange(0, 100)
-    torque = 150 + 5 * np.sin(tiempo / 5) + np.random.normal(0, 1, 100)
-    temperatura = 60 + 8 * np.sin(tiempo / 8) + np.random.normal(0, 1, 100)
-    hist = pd.DataFrame({
-        "Tiempo (min)": tiempo,
-        "Torque (Nm)": torque,
-        "Temperatura_aceite (°C)": temperatura
-    })
+features = [
+    "Corriente_motor (A)", "Torque (Nm)",
+    "Presión_hidráulica (bar)", "Temperatura_aceite (°C)"
+]
 
-    # Gráfico de evolución
-    fig_line = px.line(hist, x="Tiempo (min)",
-                       y=["Torque (Nm)", "Temperatura_aceite (°C)"],
-                       title="Evolución del Torque y Temperatura del Motor",
-                       labels={"value": "Medición", "variable": "Variable"})
-    st.plotly_chart(fig_line, use_container_width=True)
+X = df[features]
 
 # ==============================================================
-# 🚨 MODO 3: ALARMAS Y MANTENIMIENTO
+# 2️⃣ DETECCIÓN DE ANOMALÍAS (Isolation Forest)
 # ==============================================================
-else:
-    st.title("🚨 Gestión de Alarmas y Mantenimiento Histórico")
 
-    import os
+model = IsolationForest(contamination=0.5, random_state=42)
+df["riesgo_falla"] = model.fit_predict(X)
+df["riesgo_falla"] = df["riesgo_falla"].map({1: "Normal", -1: "Riesgo"})
 
-    # Si existe el archivo de alarmas, cargarlo
-    if os.path.exists("alarmas_log.csv"):
-        log = pd.read_csv("alarmas_log.csv")
-        st.success(f"📁 {len(log)} alarmas registradas históricamente.")
+# ==============================================================
+# 3️⃣ DIAGNÓSTICO AUTOMÁTICO DE FALLAS
+# ==============================================================
+
+def diagnostico_falla(row):
+    if row["riesgo_falla"] == "Normal":
+        return "Sin anomalías detectadas"
+    if row["Corriente_motor (A)"] > 16:
+        return "Posible sobrecarga eléctrica del motor"
+    elif row["Presión_hidráulica (bar)"] < 80:
+        return "Presión hidráulica baja — posible fuga o válvula defectuosa"
+    elif row["Temperatura_aceite (°C)"] > 63:
+        return "Temperatura alta — riesgo de sobrecalentamiento"
+    elif row["Torque (Nm)"] > 150:
+        return "Torque elevado — posible fricción o desalineación"
     else:
-        log = pd.DataFrame(columns=["Fecha_Hora", "Variable", "Nivel", "Descripción", "Estado"])
-        st.warning("⚠️ No se han registrado alarmas aún.")
+        return "Anomalía no clasificada"
 
-    # Mostrar tabla de alarmas
-    st.dataframe(log)
+df["causa_probable"] = df.apply(diagnostico_falla, axis=1)
 
-    # Gráfico resumen de alarmas
-    if not log.empty:
-        import plotly.express as px
-        fig_pie = px.pie(log, names="Nivel",
-                         title="Distribución de Niveles de Alarma",
-                         color_discrete_map={"Alta": "#DC2626", "Media": "#F59E0B", "Baja": "#10B981"})
-        st.plotly_chart(fig_pie, use_container_width=True)
+# ==============================================================
+# 4️⃣ VISUALIZACIÓN
+# ==============================================================
 
-    st.markdown("---")
-    st.info("💡 Consejo: Usa este historial para planificar mantenimientos preventivos y evaluar patrones de falla.")
+# Conteo de estados
+conteo = df["riesgo_falla"].value_counts()
+plt.bar(conteo.index, conteo.values, color=["lightgreen", "red"])
+plt.title("Distribución de Riesgos de Falla")
+plt.ylabel("Número de muestras")
+plt.show()
+
+# Boxplots individuales
+for var in features:
+    plt.figure(figsize=(5, 4))
+    plt.boxplot(df[var].dropna())
+    plt.title(f"Boxplot de {var}")
+    plt.ylabel(var)
+    plt.grid(True)
+    plt.show()
+
+# ==============================================================
+# 5️⃣ TABLA FINAL CON COLORES
+# ==============================================================
+
+def pintar_riesgo_color(val):
+    if val == 'Riesgo':
+        return 'background-color: red; color: white'
+    else:
+        return 'background-color: lightgreen; color: black'
+
+df_styled = df.style.applymap(pintar_riesgo_color, subset=['riesgo_falla'])
+df_styled
 
