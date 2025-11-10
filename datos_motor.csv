@@ -1,4 +1,4 @@
-﻿Corriente_motor (A);Torque (Nm);Presión_hidráulica (bar);Temperatura_aceite (°C)
+﻿Corriente_motor (A),Torque (Nm),Presión_hidráulica (bar),Temperatura_aceite (°C)
 19.5,160.14,89.7,72.4
 17.9,158.7,88.9,70.1
 16.8,157.3,87.3,67.5
@@ -9,6 +9,7 @@
 10.8,138.5,82.1,42.0
 11.2,140.2,80.4,41.8
 10.4,139.8,80.6,43.5
+
 
 
 
