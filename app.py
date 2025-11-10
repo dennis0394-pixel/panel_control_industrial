@@ -1,3 +1,7 @@
+# ============================================================
+# ⚙️ PANEL INDUSTRIAL 4.0 — Monitoreo + Histórico + Alarmas
+# ============================================================
+
 import pandas as pd
 import numpy as np
 import datetime
@@ -39,16 +43,19 @@ try:
 except UnicodeDecodeError:
     df = pd.read_csv("datos_motor.csv", encoding="latin-1", sep=",")
 
-    st.sidebar.success("✅ Datos cargados correctamente desde 'datos_motor.csv'")
-except Exception as e:
-    st.sidebar.warning("⚠️ No se encontró 'datos_motor.csv' o no se pudo leer correctamente. Se generarán datos de ejemplo.")
-    st.write(e)
-    df = pd.DataFrame({
-        "Corriente_motor (A)": [18.5, 17.9, 16.8, 19.2, 18.7, 17.4, 15.9, 10.8, 11.2, 10.4],
-        "Torque (Nm)": [160.4, 158.7, 157.3, 162.8, 159.9, 155.6, 152.0, 138.5, 140.2, 139.8],
-        "Presión_hidráulica (bar)": [90.2, 88.9, 87.3, 91.0, 89.5, 88.1, 85.7, 82.1, 80.4, 80.6],
-        "Temperatura_aceite (°C)": [68.4, 70.1, 67.5, 72.3, 69.8, 71.2, 65.9, 42.0, 41.8, 43.5]
-    })
+# 🔧 LIMPIEZA AUTOMÁTICA DE DATOS NUMÉRICOS
+for col in df.columns:
+    df[col] = df[col].astype(str).str.replace(",", ".").str.replace(" ", "")
+    df[col] = pd.to_numeric(df[col], errors="coerce")
+
+# Eliminar filas vacías o no válidas
+df = df.dropna(how="any")
+
+if df.select_dtypes(include=["float64", "int64"]).empty:
+    st.error("⚠️ No hay columnas numéricas válidas en el archivo 'datos_motor.csv'. Verifica que los números usen punto (.) como separador decimal.")
+    st.stop()
+
+st.sidebar.success("✅ Datos cargados correctamente desde 'datos_motor.csv'")
 
 # =========================================================
 # 📊 MODO 1: MONITOREO EN VIVO
@@ -56,36 +63,29 @@ except Exception as e:
 if modo == "📊 Monitoreo en Vivo":
     st.title("🧠 Monitoreo en Tiempo Real del Motor")
 
-    # Asegurar solo columnas numéricas
-    df_numerico = df.select_dtypes(include=["float64", "int64"]).dropna()
-    if df_numerico.empty:
-        st.error("⚠️ No hay columnas numéricas válidas en el archivo 'datos_motor.csv'. Verifica los datos.")
-        st.stop()
+    df_numerico = df.select_dtypes(include=["float64", "int64"])
 
-    # Modelo de detección de anomalías
     model = IsolationForest(contamination=0.3, random_state=42)
     df["riesgo_falla"] = model.fit_predict(df_numerico)
     df["riesgo_falla"] = df["riesgo_falla"].map({1: "Normal", -1: "Riesgo"})
 
-    # Diagnóstico automático
     def diagnostico_falla(row):
         if row["riesgo_falla"] == "Normal":
             return "Sin anomalías detectadas"
-        if row["Corriente_motor (A)"] > 16:
+        if row.get("Corriente_motor (A)", 0) > 16:
             return "Posible sobrecarga eléctrica"
-        elif row["Presión_hidráulica (bar)"] < 80:
+        elif row.get("Presión_hidráulica (bar)", 0) < 80:
             return "Presión baja — posible fuga"
-        elif row["Temperatura_aceite (°C)"] > 63:
-            return "Temperatura alta — sobrecalentamiento"
-        elif row["Torque (Nm)"] > 150:
+        elif row.get("Temperatura_aceite (°C)", 0) > 63:
+            return "Temperatura alta — riesgo de sobrecalentamiento"
+        elif row.get("Torque (Nm)", 0) > 150:
             return "Torque elevado — posible fricción"
         else:
             return "Anomalía no clasificada"
 
     df["causa_probable"] = df.apply(diagnostico_falla, axis=1)
-
-    # Métricas
     conteo = df["riesgo_falla"].value_counts()
+
     col1, col2, col3 = st.columns(3)
     col1.metric("⚠️ Riesgos Detectados", conteo.get("Riesgo", 0))
     col2.metric("✅ Normales", conteo.get("Normal", 0))
@@ -97,7 +97,7 @@ if modo == "📊 Monitoreo en Vivo":
         for _, fila in riesgos.iterrows():
             nueva_alarma = pd.DataFrame([{
                 "Fecha_Hora": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "Variable": "Temperatura_aceite (°C)" if fila["Temperatura_aceite (°C)"] > 63 else "General",
+                "Variable": "Temperatura_aceite (°C)" if fila.get("Temperatura_aceite (°C)", 0) > 63 else "General",
                 "Nivel": "Alta",
                 "Descripción": fila["causa_probable"],
                 "Estado": "Pendiente"
@@ -109,7 +109,6 @@ if modo == "📊 Monitoreo en Vivo":
                 log = nueva_alarma
             log.to_csv("alarmas_log.csv", index=False)
 
-    # Gráfico de barras
     fig_barras = px.bar(conteo, x=conteo.index, y=conteo.values,
                         color=conteo.index,
                         color_discrete_map={"Normal": "#10B981", "Riesgo": "#EF4444"},
@@ -125,19 +124,14 @@ elif modo == "📈 Histórico":
     tiempo = np.arange(0, 100)
     torque = 150 + 5 * np.sin(tiempo / 5) + np.random.normal(0, 1, 100)
     temperatura = 60 + 8 * np.sin(tiempo / 8) + np.random.normal(0, 1, 100)
-    hist = pd.DataFrame({
-        "Tiempo (min)": tiempo,
-        "Torque (Nm)": torque,
-        "Temperatura_aceite (°C)": temperatura
-    })
+    hist = pd.DataFrame({"Tiempo (min)": tiempo, "Torque (Nm)": torque, "Temperatura_aceite (°C)": temperatura})
 
-    fig_line = px.line(hist, x="Tiempo (min)",
-                       y=["Torque (Nm)", "Temperatura_aceite (°C)"],
-                       title="Evolución del Torque y Temperatura del Motor")
+    fig_line = px.line(hist, x="Tiempo (min)", y=["Torque (Nm)", "Temperatura_aceite (°C)"],
+                       title="Evolución del Torque y Temperatura")
     st.plotly_chart(fig_line, use_container_width=True)
 
 # =========================================================
-# 🚨 MODO 3: ALARMAS Y MANTENIMIENTO
+# 🚨 MODO 3: ALARMAS
 # =========================================================
 elif modo == "🚨 Alarmas y Mantenimiento":
     st.title("🚨 Historial de Alarmas")
@@ -171,8 +165,3 @@ else:
         df.to_csv("datos_motor.csv", index=False)
         st.success("✅ Nuevo dato guardado correctamente.")
 
-# ============================================================== #
-# 🚀 Ejecutar Streamlit + Cloudflare Tunnel
-# ============================================================== #
-# ⚙️ Ejecución local (solo para pruebas en tu PC, no en Streamlit Cloud)
-# !streamlit run app.py & npx cloudflared tunnel --url http://localhost:8501
